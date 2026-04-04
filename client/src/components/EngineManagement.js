@@ -1,117 +1,251 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Card,
+  Row,
+  Col,
+  Progress,
+  List,
+  Tag,
+  Typography,
+  InputNumber,
+  Button,
+  Space,
+  Divider,
+} from 'antd';
+import {
+  DashboardOutlined,
+  DatabaseOutlined,
+  SettingOutlined,
+  HomeOutlined,
+  FileTextOutlined,
+  SaveOutlined,
+} from '@ant-design/icons';
+
+const { Title, Text } = Typography;
 
 const EngineManagement = () => {
   const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [resourceUsage, setResourceUsage] = useState({ cpu: 0, memory: 0 });
+  const [settings, setSettings] = useState({
+    cpuLimit: 80,
+    memoryLimit: 80,
+    maxConnections: 50,
+  });
 
   useEffect(() => {
-    // 模拟获取日志
     fetchLogs();
-    // 模拟获取资源使用情况
     fetchResourceUsage();
-    const interval = setInterval(fetchResourceUsage, 5000); // 每5秒更新一次资源使用情况
+    const interval = setInterval(fetchResourceUsage, 5000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchLogs = () => {
-    // 这里应该从服务器获取真实日志，现在使用模拟数据
     const mockLogs = [
       { time: new Date().toISOString(), level: 'INFO', message: '引擎启动成功' },
       { time: new Date().toISOString(), level: 'INFO', message: '加载场景配置' },
       { time: new Date().toISOString(), level: 'INFO', message: '开始发送请求' },
+      { time: new Date(Date.now() - 60000).toISOString(), level: 'WARNING', message: 'CPU使用率超过60%' },
+      { time: new Date(Date.now() - 120000).toISOString(), level: 'INFO', message: 'QPS调整至目标值' },
     ];
     setLogs(mockLogs);
   };
 
   const fetchResourceUsage = () => {
-    // 这里应该从服务器获取真实资源使用情况，现在使用模拟数据
     const mockUsage = {
-      cpu: Math.random() * 50 + 10, // 10-60%
-      memory: Math.random() * 40 + 20, // 20-60%
+      cpu: Math.random() * 50 + 10,
+      memory: Math.random() * 40 + 20,
     };
     setResourceUsage(mockUsage);
   };
 
+  const getLevelColor = (level) => {
+    switch (level) {
+      case 'ERROR':
+        return '#ef4444';
+      case 'WARNING':
+        return '#f59e0b';
+      case 'INFO':
+        return '#10b981';
+      default:
+        return '#6b7280';
+    }
+  };
+
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>引擎管理</h1>
-      
-      <div style={{ marginBottom: '20px' }}>
-        <h2>资源占用</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
-          <div style={{ padding: '15px', border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
-            <h3>CPU使用率</h3>
-            <div style={{ width: '100%', height: '20px', backgroundColor: '#e0e0e0', borderRadius: '10px', overflow: 'hidden' }}>
-              <div 
-                style={{
-                  width: `${resourceUsage.cpu}%`,
-                  height: '100%',
-                  backgroundColor: resourceUsage.cpu > 70 ? '#ff4d4f' : resourceUsage.cpu > 40 ? '#faad14' : '#52c41a',
-                  borderRadius: '10px'
+    <div>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12}>
+          <Card
+            className="glass-card"
+            bordered={false}
+            title={
+              <Space>
+                <DashboardOutlined style={{ color: '#00d4ff' }} />
+                <Title level={4} style={{ margin: 0, color: '#fff' }}>CPU使用率</Title>
+              </Space>
+            }
+          >
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <Progress
+                type="dashboard"
+                percent={Math.round(resourceUsage.cpu)}
+                strokeColor={{
+                  '0%': resourceUsage.cpu > 70 ? '#ef4444' : resourceUsage.cpu > 40 ? '#f59e0b' : '#10b981',
+                  '100%': resourceUsage.cpu > 70 ? '#dc2626' : resourceUsage.cpu > 40 ? '#d97706' : '#059669',
                 }}
+                trailColor="rgba(255, 255, 255, 0.1)"
+                format={(percent) => (
+                  <span style={{ color: '#fff', fontSize: 24, fontWeight: 'bold' }}>
+                    {percent}%
+                  </span>
+                )}
+              />
+              <Text type="secondary" style={{ display: 'block', marginTop: 16 }}>
+                当前CPU使用率
+              </Text>
+            </div>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12}>
+          <Card
+            className="glass-card"
+            bordered={false}
+            title={
+              <Space>
+                <DatabaseOutlined style={{ color: '#7c3aed' }} />
+                <Title level={4} style={{ margin: 0, color: '#fff' }}>内存使用率</Title>
+              </Space>
+            }
+          >
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <Progress
+                type="dashboard"
+                percent={Math.round(resourceUsage.memory)}
+                strokeColor={{
+                  '0%': resourceUsage.memory > 70 ? '#ef4444' : resourceUsage.memory > 40 ? '#f59e0b' : '#10b981',
+                  '100%': resourceUsage.memory > 70 ? '#dc2626' : resourceUsage.memory > 40 ? '#d97706' : '#059669',
+                }}
+                trailColor="rgba(255, 255, 255, 0.1)"
+                format={(percent) => (
+                  <span style={{ color: '#fff', fontSize: 24, fontWeight: 'bold' }}>
+                    {percent}%
+                  </span>
+                )}
+              />
+              <Text type="secondary" style={{ display: 'block', marginTop: 16 }}>
+                当前内存使用率
+              </Text>
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      <Card
+        className="glass-card"
+        bordered={false}
+        style={{ marginTop: 16 }}
+        title={
+          <Space>
+            <FileTextOutlined style={{ color: '#00d4ff' }} />
+            <Title level={4} style={{ margin: 0, color: '#fff' }}>运行日志</Title>
+          </Space>
+        }
+      >
+        <List
+          dataSource={logs}
+          renderItem={(log) => (
+            <List.Item style={{ border: 'none', padding: '12px 0' }}>
+              <Space style={{ width: '100%' }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {new Date(log.time).toLocaleString()}
+                </Text>
+                <Tag
+                  color={getLevelColor(log.level)}
+                  style={{ margin: 0, fontWeight: 'bold' }}
+                >
+                  {log.level}
+                </Tag>
+                <Text style={{ color: '#fff' }}>{log.message}</Text>
+              </Space>
+            </List.Item>
+          )}
+          style={{ maxHeight: 300, overflow: 'auto' }}
+        />
+      </Card>
+
+      <Card
+        className="glass-card"
+        bordered={false}
+        style={{ marginTop: 16 }}
+        title={
+          <Space>
+            <SettingOutlined style={{ color: '#f472b6' }} />
+            <Title level={4} style={{ margin: 0, color: '#fff' }}>引擎设置</Title>
+          </Space>
+        }
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={8}>
+            <div>
+              <Text type="secondary">CPU使用上限（%）</Text>
+              <InputNumber
+                min={1}
+                max={100}
+                value={settings.cpuLimit}
+                onChange={(value) => setSettings({ ...settings, cpuLimit: value })}
+                style={{ width: '100%', marginTop: 8 }}
               />
             </div>
-            <p style={{ marginTop: '5px' }}>{resourceUsage.cpu.toFixed(2)}%</p>
-          </div>
-          <div style={{ padding: '15px', border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
-            <h3>内存使用率</h3>
-            <div style={{ width: '100%', height: '20px', backgroundColor: '#e0e0e0', borderRadius: '10px', overflow: 'hidden' }}>
-              <div 
-                style={{
-                  width: `${resourceUsage.memory}%`,
-                  height: '100%',
-                  backgroundColor: resourceUsage.memory > 70 ? '#ff4d4f' : resourceUsage.memory > 40 ? '#faad14' : '#52c41a',
-                  borderRadius: '10px'
-                }}
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <div>
+              <Text type="secondary">内存使用上限（%）</Text>
+              <InputNumber
+                min={1}
+                max={100}
+                value={settings.memoryLimit}
+                onChange={(value) => setSettings({ ...settings, memoryLimit: value })}
+                style={{ width: '100%', marginTop: 8 }}
               />
             </div>
-            <p style={{ marginTop: '5px' }}>{resourceUsage.memory.toFixed(2)}%</p>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ marginBottom: '20px' }}>
-        <h2>运行日志</h2>
-        <div style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '400px', overflow: 'auto' }}>
-          {logs.map((log, index) => (
-            <div key={index} style={{ marginBottom: '5px', fontSize: '14px' }}>
-              <span style={{ color: '#666' }}>{new Date(log.time).toLocaleString()} </span>
-              <span style={{ 
-                color: log.level === 'ERROR' ? '#ff4d4f' : log.level === 'WARNING' ? '#faad14' : '#52c41a',
-                marginRight: '10px'
-              }}>[{log.level}]</span>
-              <span>{log.message}</span>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <div>
+              <Text type="secondary">最大并发连接数</Text>
+              <InputNumber
+                min={1}
+                value={settings.maxConnections}
+                onChange={(value) => setSettings({ ...settings, maxConnections: value })}
+                style={{ width: '100%', marginTop: 8 }}
+              />
             </div>
-          ))}
-        </div>
-      </div>
+          </Col>
+        </Row>
 
-      <div style={{ marginBottom: '20px' }}>
-        <h2>引擎设置</h2>
-        <div style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}>
-          <p>这里可以设置引擎的CPU、内存使用上限及日志保存路径等。</p>
-          <div style={{ marginBottom: '10px' }}>
-            <label>CPU使用上限（%）：</label>
-            <input type="number" min="1" max="100" defaultValue="80" style={{ marginLeft: '10px', width: '100px' }} />
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <label>内存使用上限（%）：</label>
-            <input type="number" min="1" max="100" defaultValue="80" style={{ marginLeft: '10px', width: '100px' }} />
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <label>最大并发连接数：</label>
-            <input type="number" min="1" defaultValue="50" style={{ marginLeft: '10px', width: '100px' }} />
-          </div>
-          <button>保存设置</button>
-        </div>
-      </div>
+        <Divider style={{ borderColor: 'rgba(255, 255, 255, 0.1)', margin: '24px 0' }} />
 
-      <div style={{ marginBottom: '20px' }}>
-        <button onClick={() => navigate('/')} style={{ marginRight: '10px' }}>返回首页</button>
-        <button onClick={() => navigate('/task-execution')}>查看任务执行</button>
-      </div>
+        <Space>
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            style={{
+              background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+              border: 'none',
+            }}
+          >
+            保存设置
+          </Button>
+          <Button
+            icon={<HomeOutlined />}
+            onClick={() => navigate('/')}
+          >
+            返回首页
+          </Button>
+        </Space>
+      </Card>
     </div>
   );
 };

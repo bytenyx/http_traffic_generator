@@ -1,14 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Card, Table, Button, Tag, Space, Modal, Typography, Row, Col, Statistic } from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PlayCircleOutlined,
+  StopOutlined,
+  ThunderboltOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined
+} from '@ant-design/icons';
+
+const { Title, Text } = Typography;
+const { confirm } = Modal;
 
 const Home = () => {
+  const navigate = useNavigate();
   const [scenes, setScenes] = useState([]);
   const [engineState, setEngineState] = useState({ running: false });
 
   useEffect(() => {
     fetchScenes();
     fetchEngineState();
+    const interval = setInterval(fetchEngineState, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchScenes = async () => {
@@ -33,6 +50,7 @@ const Home = () => {
     try {
       await axios.post('/api/engine/start', { sceneId });
       fetchEngineState();
+      navigate('/task-execution');
     } catch (error) {
       console.error('Failed to start engine:', error);
     }
@@ -47,82 +65,186 @@ const Home = () => {
     }
   };
 
-  const deleteScene = async (id) => {
-    if (window.confirm('确定要删除这个场景吗？')) {
-      try {
-        await axios.delete(`/api/scenes/${id}`);
-        fetchScenes();
-      } catch (error) {
-        console.error('Failed to delete scene:', error);
-      }
-    }
+  const deleteScene = (id, name) => {
+    confirm({
+      title: '确认删除',
+      content: `确定要删除场景"${name}"吗？`,
+      okText: '确定',
+      cancelText: '取消',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          await axios.delete(`/api/scenes/${id}`);
+          fetchScenes();
+        } catch (error) {
+          console.error('Failed to delete scene:', error);
+        }
+      },
+    });
   };
 
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>HTTP流量发生器</h1>
-      
-      <div style={{ marginBottom: '20px' }}>
-        <h2>引擎状态</h2>
-        <div style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}>
-          <p>状态: {engineState.running ? '运行中' : '已停止'}</p>
-          {engineState.running && (
-            <p>当前场景: {engineState.currentScene}</p>
+  const columns = [
+    {
+      title: '场景名称',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text) => <Text strong style={{ color: '#fff' }}>{text}</Text>,
+    },
+    {
+      title: '描述',
+      dataIndex: 'description',
+      key: 'description',
+      render: (text) => <Text type="secondary">{text || '-'}</Text>,
+    },
+    {
+      title: 'QPS类型',
+      dataIndex: ['qpsConfig', 'type'],
+      key: 'qpsType',
+      render: (type) => {
+        const typeMap = {
+          fixed: '固定QPS',
+          step: '阶梯曲线',
+          linear: '线性曲线',
+          custom: '自定义折线',
+        };
+        return <Tag color="cyan">{typeMap[type] || type}</Tag>;
+      },
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (time) => <Text type="secondary">{new Date(time).toLocaleString()}</Text>,
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="primary"
+            icon={<EditOutlined />}
+            onClick={() => navigate(`/scene-config/${record.id}`)}
+            style={{
+              background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+              border: 'none',
+            }}
+          >
+            编辑
+          </Button>
+          {!engineState.running && (
+            <Button
+              type="default"
+              icon={<PlayCircleOutlined />}
+              onClick={() => startEngine(record.id)}
+              style={{
+                background: 'rgba(16, 185, 129, 0.2)',
+                border: '1px solid #10b981',
+                color: '#10b981',
+              }}
+            >
+              执行
+            </Button>
           )}
-          <div style={{ marginTop: '10px' }}>
-            {!engineState.running ? (
-              <button disabled>启动引擎</button>
-            ) : (
-              <button onClick={stopEngine}>停止引擎</button>
-            )}
-          </div>
-        </div>
-      </div>
+          <Button
+            type="default"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => deleteScene(record.id, record.name)}
+            style={{
+              background: 'rgba(239, 68, 68, 0.2)',
+              border: '1px solid #ef4444',
+              color: '#ef4444',
+            }}
+          >
+            删除
+          </Button>
+        </Space>
+      ),
+    },
+  ];
 
-      <div style={{ marginBottom: '20px' }}>
-        <Link to="/scene-config">
-          <button>新建场景</button>
-        </Link>
-        <Link to="/task-execution">
-          <button style={{ marginLeft: '10px' }}>任务执行</button>
-        </Link>
-        <Link to="/engine-management">
-          <button style={{ marginLeft: '10px' }}>引擎管理</button>
-        </Link>
-      </div>
-
-      <h2>场景列表</h2>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid #ddd' }}>
-            <th style={{ padding: '8px', textAlign: 'left' }}>场景名称</th>
-            <th style={{ padding: '8px', textAlign: 'left' }}>创建时间</th>
-            <th style={{ padding: '8px', textAlign: 'left' }}>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {scenes.map(scene => (
-            <tr key={scene.id} style={{ borderBottom: '1px solid #ddd' }}>
-              <td style={{ padding: '8px' }}>{scene.name}</td>
-              <td style={{ padding: '8px' }}>{new Date(scene.createdAt).toLocaleString()}</td>
-              <td style={{ padding: '8px' }}>
-                <Link to={`/scene-config/${scene.id}`}>
-                  <button style={{ marginRight: '5px' }}>编辑</button>
-                </Link>
-                {!engineState.running && (
-                  <button 
-                    style={{ marginRight: '5px' }} 
-                    onClick={() => startEngine(scene.id)}
+  return (
+    <div>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} md={8}>
+          <Card className="glass-card" bordered={false}>
+            <div className="data-card">
+              <ThunderboltOutlined style={{ fontSize: 32, color: '#00d4ff', marginBottom: 16 }} />
+              <div className="data-value">{engineState.running ? '运行中' : '已停止'}</div>
+              <div className="data-label">引擎状态</div>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={8}>
+          <Card className="glass-card" bordered={false}>
+            <div className="data-card">
+              <CheckCircleOutlined style={{ fontSize: 32, color: '#10b981', marginBottom: 16 }} />
+              <div className="data-value">{scenes.length}</div>
+              <div className="data-label">场景总数</div>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={8}>
+          <Card className="glass-card" bordered={false}>
+            <div className="data-card">
+              {engineState.running ? (
+                <>
+                  <StopOutlined style={{ fontSize: 32, color: '#ef4444', marginBottom: 16 }} />
+                  <Button
+                    type="primary"
+                    danger
+                    size="large"
+                    icon={<StopOutlined />}
+                    onClick={stopEngine}
+                    style={{
+                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      border: 'none',
+                    }}
                   >
-                    执行
-                  </button>
-                )}
-                <button onClick={() => deleteScene(scene.id)}>删除</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                    停止引擎
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <PlayCircleOutlined style={{ fontSize: 32, color: '#10b981', marginBottom: 16 }} />
+                  <Text type="secondary">选择场景启动引擎</Text>
+                </>
+              )}
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      <Card
+        className="glass-card"
+        bordered={false}
+        style={{ marginTop: 16 }}
+        title={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Title level={4} style={{ margin: 0, color: '#fff' }}>场景列表</Title>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/scene-config')}
+              style={{
+                background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+                border: 'none',
+              }}
+            >
+              新建场景
+            </Button>
+          </div>
+        }
+      >
+        <Table
+          dataSource={scenes}
+          columns={columns}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+          locale={{ emptyText: '暂无场景，点击"新建场景"开始创建' }}
+        />
+      </Card>
     </div>
   );
 };
