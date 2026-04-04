@@ -395,17 +395,13 @@ const startEngine = async (sceneId) => {
       for (const preRequest of preOperations.requests) {
         try {
           const result = await executePreRequest(preRequest);
-          if (result.success) {
-            // 提取参数
-            if (preRequest.params && preRequest.params.length > 0) {
-              const extracted = extractParams(result.data, preRequest.params);
-              preParams = { ...preParams, ...extracted };
-            }
-          } else {
-            throw new Error(`前置请求失败: ${result.error}`);
+          // 提取参数
+          if (preRequest.params && preRequest.params.length > 0) {
+            const extracted = extractParams(result.data, preRequest.params);
+            preParams = { ...preParams, ...extracted };
           }
         } catch (error) {
-          console.error('Failed to execute pre-request:', error);
+          console.error('Failed to execute pre-request:', error.error || error.message);
           stopEngine();
           return;
         }
